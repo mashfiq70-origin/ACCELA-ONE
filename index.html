@@ -690,7 +690,7 @@ body.on-home .logo .wm-o{animation:wm-glow 1.5s ease-in-out infinite}
 
   <section class="center" id="upload-center" hidden=""></section>
 
-  <footer>ACCELA ONE · v4.6</footer>
+  <footer>ACCELA ONE · v4.7</footer>
 
   <div class="modal" id="admin" hidden="">
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="admin-title">
@@ -764,6 +764,44 @@ body.on-home .logo .wm-o{animation:wm-glow 1.5s ease-in-out infinite}
 .gate-err{background:var(--bad-bg);color:var(--bad);border-radius:9px;padding:10px 12px;font-size:14px;font-weight:600}
 .gate-credit{border-top:1px solid var(--line);padding-top:14px;font-size:13px;color:var(--muted);line-height:1.5}
 .gate-credit b{color:var(--accent-ink)}
+/* Contact box + Connect us */
+.ct-link{font:inherit;font-weight:700;color:var(--accent-ink);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.ct-modal{position:fixed;inset:0;z-index:350;background:rgba(8,16,10,.55);display:grid;place-items:center;padding:20px 16px;overflow-y:auto}
+.ct-sheet{width:min(440px,100%);background:var(--surface);color:var(--fg);border:1px solid var(--line);border-top:4px solid var(--accent);border-radius:16px;padding:22px 24px 24px;display:flex;flex-direction:column;gap:14px;box-shadow:0 24px 60px rgba(0,0,0,.3)}
+.ct-sheet.ct-wide{width:min(620px,100%)}
+.ct-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.ct-head h2{margin:0;font-family:var(--f-display);font-size:22px;font-weight:800}
+.ct-x{font:inherit;font-size:24px;line-height:1;background:none;border:0;color:var(--muted);cursor:pointer;padding:4px 8px;border-radius:8px}
+.ct-x:hover{background:var(--bg)}
+.ct-lead{margin:0;color:var(--muted);font-size:14.5px}
+.ct-card{display:flex;flex-direction:column;gap:2px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:14px 16px;font-size:14.5px;line-height:1.5}
+.ct-card b{font-size:16px;font-family:var(--f-display)}
+.ct-card span{color:var(--muted)}
+.ct-card a{color:var(--accent-ink);font-weight:600;text-decoration:none;margin-top:2px}
+.ct-card a:hover{text-decoration:underline}
+#ct-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px}
+.ct-f{display:flex;flex-direction:column;gap:5px;min-width:0}
+.ct-f.ct-full,.ct-err,.ct-act{grid-column:1 / -1}
+.ct-f label{font-size:12.5px;font-weight:600;letter-spacing:.04em;color:var(--muted)}
+.ct-f label i,.ct-note i{font-style:normal;color:var(--bad)}
+.ct-f input,.ct-f select,.ct-f textarea{font:inherit;font-size:15px;color:var(--fg);background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;min-width:0}
+.ct-f textarea{resize:vertical;min-height:110px}
+.ct-f input:focus-visible,.ct-f select:focus-visible,.ct-f textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+.ct-f.bad input,.ct-f.bad select,.ct-f.bad textarea{border-color:var(--bad)}
+.ct-err{background:var(--bad-bg);color:var(--bad);border-radius:9px;padding:10px 12px;font-size:14px;font-weight:600}
+.ct-err.ok{background:var(--accent-soft);color:var(--accent-ink)}
+.ct-act{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.ct-note{font-size:12.5px;color:var(--muted)}
+.ct-send{font:inherit;font-weight:700;font-size:15px;border:0;border-radius:10px;padding:11px 28px;background:var(--accent);color:#fff;cursor:pointer}
+.ct-send:disabled{opacity:.6;cursor:default}
+.ct-direct{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:14px}
+.a1-connect{display:none;position:fixed;right:20px;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:45;align-items:center;gap:9px;font:inherit;font-weight:700;font-size:15px;color:#fff;background:var(--accent);border:0;border-radius:999px;padding:12px 18px 12px 15px;cursor:pointer;box-shadow:0 10px 26px rgba(0,0,0,.22)}
+.a1-connect svg{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.a1-connect:hover{filter:brightness(1.07)}
+.a1-connect:focus-visible{outline:2px solid var(--fg);outline-offset:3px}
+body.on-home .a1-connect{display:inline-flex}
+@media (max-width:560px){#ct-form{grid-template-columns:1fr}.ct-sheet{padding:18px 18px 20px}.a1-connect{right:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px))}}
+
 .pw-card{margin-top:4px}
 .pw-row{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap}
 .pw-row .field{flex:1 1 200px;min-width:0}
@@ -884,6 +922,84 @@ body.on-home .logo .wm-o{animation:wm-glow 1.5s ease-in-out infinite}
     document.addEventListener("keydown", onKey);
     setTimeout(close, SECS * 1000);
   })();
+
+  // ---------- Contact box + "Connect us" feedback form ----------
+  // Feedback goes to a Google Sheet through a Google Apps Script web app. Paste its URL below.
+  const A1_INBOX = "";
+  const CONTACT_HTML = `<div class="ct-card">
+      <b>Md. Mashkatul Islam Mashfiq</b>
+      <span>Product Executive</span><span>Marketing Pharma Division</span><span>Renata PLC</span>
+      <a href="tel:+8801847432427">Phone: 01847432427</a>
+      <a href="mailto:mashkatul.islam@renata-ltd.com">Mail: mashkatul.islam@renata-ltd.com</a>
+    </div>`;
+  const ctEsc = (v) => String(v).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  function ctClose() { const m = document.getElementById("ct-modal"); if (m) m.remove(); document.removeEventListener("keydown", ctKey); }
+  function ctKey(e) { if (e.key === "Escape") ctClose(); }
+  function ctOpen(mode) {
+    ctClose();
+    const D = A1.data, months = D && D.months ? Object.keys(D.months).sort() : [], last = months.length ? D.months[months[months.length - 1]] : null;
+    const dsms = D && D.dsms ? Object.keys(D.dsms).sort() : [];
+    const m = document.createElement("div");
+    m.id = "ct-modal"; m.className = "ct-modal";
+    m.innerHTML = mode === "info"
+      ? `<div class="ct-sheet" role="dialog" aria-modal="true" aria-labelledby="ct-h">
+          <div class="ct-head"><h2 id="ct-h">Need the password?</h2><button type="button" class="ct-x" aria-label="Close">×</button></div>
+          <p class="ct-lead">Ask your supervisor, or contact:</p>${CONTACT_HTML}</div>`
+      : `<div class="ct-sheet ct-wide" role="dialog" aria-modal="true" aria-labelledby="ct-h">
+          <div class="ct-head"><h2 id="ct-h">Connect us</h2><button type="button" class="ct-x" aria-label="Close">×</button></div>
+          <form id="ct-form" novalidate>
+            <div class="ct-f ct-full"><label for="ct-msg">Write your feedback here <i>*</i></label><textarea id="ct-msg" rows="5" maxlength="2000" required></textarea></div>
+            <div class="ct-f"><label for="ct-name">Name <i>*</i></label><input id="ct-name" autocomplete="name" maxlength="80" required></div>
+            <div class="ct-f"><label for="ct-phone">Contact no <i>*</i></label><input id="ct-phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="01XXXXXXXXX" required></div>
+            <div class="ct-f"><label for="ct-dsm">DSM code <i>*</i></label><select id="ct-dsm" required><option value="">Choose your DSM</option>${dsms.map((c) => `<option value="${ctEsc(c)}">${ctEsc(c)} · ${ctEsc(D.dsms[c])}</option>`).join("")}</select></div>
+            <div class="ct-f"><label for="ct-pso">PSO code <i>*</i></label><select id="ct-pso" required disabled><option value="">Choose a DSM first</option></select></div>
+            <div class="ct-err" id="ct-err" hidden></div>
+            <div class="ct-act"><span class="ct-note"><i>*</i> Required</span><button type="submit" class="ct-send" id="ct-send">Send</button></div>
+          </form>
+          <div class="ct-direct"><p class="ct-lead">For direct connect</p>${CONTACT_HTML}</div></div>`;
+    document.body.appendChild(m);
+    m.addEventListener("click", (e) => { if (e.target === m || e.target.closest(".ct-x")) ctClose(); });
+    document.addEventListener("keydown", ctKey);
+    const first = m.querySelector("textarea, .ct-x"); if (first) first.focus();
+    const form = m.querySelector("#ct-form"); if (!form) return;
+    const $c = (id) => m.querySelector("#" + id);
+    $c("ct-dsm").addEventListener("change", () => {
+      const d = $c("ct-dsm").value, pso = $c("ct-pso");
+      const list = last && last.psos ? last.psos.filter((p) => p.d === d && !/^vacant$/i.test(String(p.n).trim())) : [];
+      pso.innerHTML = d ? `<option value="">Choose your PSO code</option>${list.map((p) => `<option value="${ctEsc(p.p)}">${ctEsc(p.p)} · ${ctEsc(p.n)}</option>`).join("")}` : `<option value="">Choose a DSM first</option>`;
+      pso.disabled = !d;
+    });
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const err = $c("ct-err"), btn = $c("ct-send");
+      const v = { msg: $c("ct-msg").value.trim(), name: $c("ct-name").value.trim(), phone: $c("ct-phone").value.trim(), dsm: $c("ct-dsm").value, pso: $c("ct-pso").value };
+      const missing = [["msg", "your feedback"], ["name", "your name"], ["phone", "your contact number"], ["dsm", "your DSM code"], ["pso", "your PSO code"]].filter(([k]) => !v[k]);
+      m.querySelectorAll(".ct-f").forEach((f) => f.classList.remove("bad"));
+      missing.forEach(([k]) => $c("ct-" + k).closest(".ct-f").classList.add("bad"));
+      const say = (t, ok) => { err.textContent = t; err.hidden = false; err.classList.toggle("ok", !!ok); };
+      if (missing.length) return say("Please fill in " + missing.map((x) => x[1]).join(", ") + ".");
+      if (v.phone.replace(/\D/g, "").length < 10) { $c("ct-phone").closest(".ct-f").classList.add("bad"); return say("Please check your contact number."); }
+      if (!A1_INBOX) return say("The feedback inbox is not connected yet. Please use the direct contact below for now.");
+      btn.disabled = true; btn.textContent = "Sending…";
+      try {
+        await fetch(A1_INBOX, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ ...v, src: location.hostname }) });
+        form.reset(); $c("ct-pso").disabled = true;
+        say("Thank you! Your feedback has been sent.", true);
+        btn.textContent = "Sent";
+        setTimeout(() => { btn.disabled = false; btn.textContent = "Send"; }, 20000);
+      } catch (x) {
+        btn.disabled = false; btn.textContent = "Send";
+        say("Couldn't send. Check your internet connection and try again.");
+      }
+    });
+  }
+  A1.contact = ctOpen;
+  document.addEventListener("click", (e) => { const b = e.target.closest("[data-contact]"); if (b) { e.preventDefault(); ctOpen(b.dataset.contact); } });
+  // "Connect us" button: bottom right, home page only (body.on-home is set by the portal)
+  document.body.insertAdjacentHTML("beforeend", `<button type="button" id="a1-connect" class="a1-connect" data-contact="feedback">
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.7 7.1L4 20.5l1.4-4.9A8 8 0 1 1 21 12z"/><path d="M8.5 11h7M8.5 14.5h4.5"/></svg><span>Connect us</span></button>`);
+
   const gate = document.createElement("div");
   gate.className = "gate"; gate.id = "gate";
   gate.innerHTML = `<div class="gate-card" role="dialog" aria-labelledby="gate-h"><button class="gate-theme" id="gate-theme" type="button" data-theme-toggle="" aria-label="Switch to dark mode"><svg class="ti-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg><svg class="ti-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg><span class="ti-l">Dark</span></button>
@@ -896,7 +1012,7 @@ body.on-home .logo .wm-o{animation:wm-glow 1.5s ease-in-out infinite}
         <div class="gate-err" id="gate-err" hidden></div>
         <button class="go" id="gate-go" type="submit">Open ACCELA ONE</button>
       </form>
-      <div class="gate-credit">Don't have the password? Ask your DSM or Mashfiq.</div>
+      <div class="gate-credit">Don't have the password? <button type="button" class="ct-link" data-contact="info">Click here</button></div>
     </div>`;
   document.body.appendChild(gate);
   const $g = (id) => document.getElementById(id);
