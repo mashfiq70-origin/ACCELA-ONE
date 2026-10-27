@@ -966,7 +966,7 @@ body.on-home .a1-connect{display:inline-flex}
     $c("ct-dsm").addEventListener("change", () => {
       const d = $c("ct-dsm").value, pso = $c("ct-pso");
       const list = last && last.psos ? last.psos.filter((p) => p.d === d && !/^vacant$/i.test(String(p.n).trim())) : [];
-      pso.innerHTML = d ? `<option value="">Choose your PSO code</option>${list.map((p) => `<option value="${ctEsc(p.p)}">${ctEsc(p.p)} · ${ctEsc(p.n)}</option>`).join("")}` : `<option value="">Choose a DSM first</option>`;
+      pso.innerHTML = d ? `<option value="">Choose your PSO code</option><option value="DSM">DSM · I am the DSM</option>${list.map((p) => `<option value="${ctEsc(p.p)}">${ctEsc(p.p)} · ${ctEsc(p.n)}</option>`).join("")}` : `<option value="">Choose a DSM first</option>`;
       pso.disabled = !d;
     });
     form.addEventListener("submit", async (e) => {
