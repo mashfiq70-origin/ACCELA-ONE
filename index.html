@@ -475,6 +475,8 @@ table.trt tr.gt td:first-child,table.trt tr.sub td:first-child{background:var(--
 .tr .seg{align-self:flex-start}
 /* Welcome announcement: dark start screen with the ring logo (one fixed dark look in both themes) */
 footer b{color:var(--fg);font-weight:600}
+footer .ft-name{color:var(--accent);font-weight:700}
+@media (max-width:640px){footer .ft-sep{display:none}footer .ft-by{display:block;margin-top:4px}}
 .hello{position:fixed;inset:0;z-index:300;display:grid;place-items:center;overflow-y:auto;cursor:pointer;color:#F4F7F3;
   padding:max(56px,env(safe-area-inset-top,0px)) 20px max(64px,env(safe-area-inset-bottom,0px));
   background:radial-gradient(58% 48% at 50% 40%,#1F4B2B 0%,#0F2616 46%,#08140C 100%);animation:hello-in .5s ease both}
@@ -690,7 +692,7 @@ body.on-home .logo .wm-o{animation:wm-glow 1.5s ease-in-out infinite}
 
   <section class="center" id="upload-center" hidden=""></section>
 
-  <footer>ACCELA ONE · v4.7</footer>
+  <footer>ACCELA ONE · v4.7<span class="ft-sep"> · </span><span class="ft-by">Developed &amp; maintained by <b class="ft-name">Mashfiq</b>, Product Executive, MKT, Renata PLC</span></footer>
 
   <div class="modal" id="admin" hidden="">
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="admin-title">
