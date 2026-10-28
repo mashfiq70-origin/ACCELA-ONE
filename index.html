@@ -548,6 +548,15 @@ footer .ft-name{color:var(--accent);font-weight:700}
   .hello-pin .hr-arc{animation:none;stroke-dashoffset:0}
   .hello-pin .hr-dot{animation:none;opacity:1;transform:none}}
 
+/* Start screen: developer credit pinned to the bottom (stays when docked beside the password box) */
+.hello-hint{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+.hello-dev{position:absolute;left:0;right:0;bottom:calc(24px + env(safe-area-inset-bottom,0px));margin:0;padding:0 16px;text-align:center;font-size:13px;line-height:1.5;color:#A9C4AD;opacity:0;animation:hf-up .6s 2.6s ease forwards}
+.hello-dev b{color:#7ED388;font-weight:700}
+.hello-dev span{display:block;font-size:12px;color:#7F9B84;letter-spacing:.02em}
+.hello.still .hello-dev{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.hello-dev{animation:none;opacity:1}}
+@media (max-width:760px){.hello.dock .hello-dev{display:none}}
+
 /* Brand mark: the A inside an achievement ring, beside the ACCELA ONE wordmark */
 .logo-btn{display:inline-flex;align-items:center;gap:14px;text-align:left}
 .brand-pin{width:48px;height:auto;flex:none;overflow:visible}
@@ -898,6 +907,7 @@ body.on-home .a1-connect{display:inline-flex}
       <p class="hello-sub">Every number. Every team. One place to see where you stand.</p>
     </div>
     <p class="hello-hint">Tap anywhere to enter</p>
+    <p class="hello-dev">Developed &amp; maintained by <b>Mashfiq</b><span>Product Executive, MKT, Renata PLC</span></p>
     <div class="hello-bar"><i style="animation-duration:${SECS}s"></i></div>`;
     document.body.appendChild(el);
     let done = false;
