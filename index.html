@@ -701,7 +701,7 @@ body.on-home .logo .wm-o{animation:wm-glow 1.5s ease-in-out infinite}
 
   <section class="center" id="upload-center" hidden=""></section>
 
-  <footer>ACCELA ONE · v4.7<span class="ft-sep"> · </span><span class="ft-by">Developed &amp; maintained by <b class="ft-name">Mashfiq</b>, Product Executive, MKT, Renata PLC</span></footer>
+  <footer>ACCELA ONE · v4.8<span class="ft-sep"> · </span><span class="ft-by">Developed &amp; maintained by <b class="ft-name">Mashfiq</b>, Product Executive, MKT, Renata PLC</span></footer>
 
   <div class="modal" id="admin" hidden="">
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="admin-title">
@@ -2261,7 +2261,7 @@ const apdUpTo = (k) => { const m = APD.months[k]; return !m ? "" : m.final ? "Mo
 const apdRunning = (k) => !!APD.months[k] && !APD.months[k].final;
 
 function buildAPD() {
-  if (!APD_LATEST) return `<div class="nodata"><b>No portfolio data yet</b>Upload the Brand Wise National report and the ACC NAT and ACC DHAKA trend files in the Upload Center.</div>`;
+  if (!APD_LATEST) return `<div class="nodata"><b>No portfolio data yet</b>Upload the daily ACCELA PORTFOLIO DASHBOARD file in the Upload Center.</div>`;
   const sel = state.apdMonth || APD_LATEST, isY = sel === "Y", k = isY ? APD_LATEST : sel, mode = isY ? "y" : "m";
   const cat = APD_CATS.find((c) => c.id === state.apdCat) || APD_CATS[0];
   const m = APD.months[k];
@@ -2301,7 +2301,7 @@ function buildAPD() {
       <tbody>${brandRows || `<tr><td colspan="6" class="muted">No brands in this group.</td></tr>`}</tbody></table></div>
     </div>
     <div class="legend"><span style="--c:var(--good)">100%+</span><span style="--c:var(--warn)">90–99%</span><span style="--c:var(--bad)">Below 90%</span><span style="--c:var(--fg)">Budget line (100%)</span></div>
-    <p class="muted">Sources: Brand wise National Sales Report (NATIONAL), ACC NAT trend (ACCELA), ACC DHAKA trend (DHAKA-K). Budget and last-year sales are worked out from each report's %Ach and %Gr, so the totals match the reports.</p>
+    <p class="muted">Source: the daily ACCELA PORTFOLIO DASHBOARD file (AREA = NATIONAL, ACCELA, ACCELA DHAKA). Budget and last-year sales are worked out from each brand's %Ach and %Gr, so the totals match the report.</p>
   </div>`;
 }
 document.addEventListener("click", (e) => {
@@ -2317,55 +2317,38 @@ function apdCheck(X, files, ctx) {
   const num = (v) => (typeof v === "number" ? v : v == null || v === "" ? 0 : parseFloat(String(v).replace(/,/g, "")) || 0);
   const put = (k, z, rows, names, file) => { got[k] = got[k] || {}; if (got[k][z]) warnings.push(`${monthLabel(k)} ${z === "n" ? "national" : z === "a" ? "ACC NAT" : "ACC DHAKA"} figures appear in more than one file; "${file}" was used.`); got[k][z] = { rows, names, file }; };
   let upToNat = null;
+  // v4.8: only the daily ACCELA PORTFOLIO DASHBOARD file is accepted — one sheet, one row per area and brand:
+  // AREA (NATIONAL / ACCELA / ACCELA DHAKA) · PRODUCT NAME · MTD AMOUNT · MTD %ACH · MTD %GR · YTD AMOUNT · YTD %ACH · YTD %GR
+  const AREA_N = { n: "NATIONAL", a: "ACCELA", d: "ACCELA DHAKA" };
   for (const f of files) {
     const wb = X.read(f.buf, { type: "array" });
-    const all = wb.SheetNames.map((n) => ({ n, g: X.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: null, raw: true }) }));
-    const text = all.flatMap((s) => s.g.slice(0, 12).flat()).filter((v) => typeof v === "string").join(" ");
-    if (/brand\s*wise\s*national/i.test(text) || all.some((s) => s.g.some((r) => r && r.some((c) => norm(c) === "PRODUCTNAME") && r.some((c) => norm(c) === "MTDAMOUNT")))) {
-      // Brand wise National Sales Report: month from "Month : September 30, 2026"
-      const mm = text.match(/Month\s*:\s*([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})/);
-      if (!mm) { errors.push(`"${f.name}": couldn't find the "Month : <month> <day>, <year>" line.`); continue; }
-      const mi = APD_MON.findIndex((w) => w.startsWith(mm[1].toUpperCase().slice(0, 3)));
-      const key = `${mm[3]}-${String(mi + 1).padStart(2, "0")}`;
-      const sh = all.find((s) => s.g.some((r) => r && r.some((c) => norm(c) === "PRODUCTNAME") && r.some((c) => norm(c) === "MTDAMOUNT")));
-      if (!sh) { errors.push(`"${f.name}": no sheet with PRODUCT NAME and MTD AMOUNT headings in one row (the report's Sheet2).`); continue; }
-      const hi = sh.g.findIndex((r) => r && r.some((c) => norm(c) === "PRODUCTNAME")), H = sh.g[hi].map(norm);
-      const idx = ["PRODUCTNAME", "MTDAMOUNT", "MTD%ACH", "MTD%GR", "YTDAMOUNT", "YTD%ACH", "YTD%GR"].map((h) => H.indexOf(h));
-      if (idx.some((i) => i < 0)) { errors.push(`"${f.name}": missing column(s) ${["PRODUCT NAME", "MTD AMOUNT", "MTD %ACH", "MTD %GR", "YTD AMOUNT", "YTD %ACH", "YTD %GR"].filter((_, j) => idx[j] < 0).join(", ")}.`); continue; }
-      const rows = {}, names = {};
-      sh.g.slice(hi + 1).forEach((r) => { const nm = r && r[idx[0]]; if (!nm || /^TOTAL/i.test(String(nm).trim())) return; const b = String(nm).trim().toUpperCase(); rows[b] = idx.slice(1).map((i) => Math.round(num(r[i]) * 1e4) / 1e4); names[b] = String(nm).trim(); });
-      put(key, "n", rows, names, f.name);
-      if (key === ctx.month) upToNat = `${+mm[2]} ${MON[mi]} ${mm[3]}`;
-      continue;
+    let found = false;
+    for (const sn of wb.SheetNames) {
+      const g = X.utils.sheet_to_json(wb.Sheets[sn], { header: 1, defval: null, raw: true });
+      const hi = g.findIndex((r) => r && r.some((c) => norm(c) === "AREA") && r.some((c) => norm(c) === "PRODUCTNAME"));
+      if (hi < 0) continue;
+      found = true;
+      const H = g[hi].map(norm), iA = H.indexOf("AREA");
+      const HD = ["PRODUCT NAME", "MTD AMOUNT", "MTD %ACH", "MTD %GR", "YTD AMOUNT", "YTD %ACH", "YTD %GR"], idx = HD.map((h) => H.indexOf(norm(h)));
+      if (idx.some((i) => i < 0)) { errors.push(`"${f.name}": missing column(s) ${HD.filter((_, j) => idx[j] < 0).join(", ")}.`); break; }
+      const per = { n: { rows: {}, names: {} }, a: { rows: {}, names: {} }, d: { rows: {}, names: {} } }, other = new Set(), dups = [];
+      g.slice(hi + 1).forEach((r) => {
+        if (!r || r[idx[0]] == null || String(r[idx[0]]).trim() === "") return;
+        const ar = norm(r[iA]), z = ar === "NATIONAL" ? "n" : ar.includes("DHAKA") ? "d" : ar.startsWith("ACC") ? "a" : null;
+        if (!z) { if (r[iA] != null && String(r[iA]).trim()) other.add(String(r[iA]).trim()); return; }
+        const nm = String(r[idx[0]]).trim(); if (/^(GRAND|TOTAL|PAGE)/i.test(nm)) return;
+        const b = nm.toUpperCase();
+        if (per[z].rows[b]) dups.push(`${AREA_N[z]} ${nm}`);
+        per[z].rows[b] = idx.slice(1).map((i) => Math.round(num(r[i]) * 1e4) / 1e4); per[z].names[b] = nm;
+      });
+      if (other.size) warnings.push(`"${f.name}": ignored rows with AREA ${[...other].slice(0, 6).join(", ")} (only NATIONAL, ACCELA and ACCELA DHAKA are used).`);
+      if (dups.length) warnings.push(`"${f.name}": brand listed twice in one area, the last row was used: ${dups.slice(0, 6).join(", ")}.`);
+      ["n", "a", "d"].forEach((z) => { if (Object.keys(per[z].rows).length) put(ctx.month, z, per[z].rows, per[z].names, f.name); else errors.push(`"${f.name}": no ${AREA_N[z]} rows (AREA column).`); });
+      break;
     }
-    // Daily dashboard workbook (v3.3): sheets NATIONAL / ACCELA NAT / ACCELA DHAKA, each with a
-    // BRAND · MTD SALES · MTD ACH · MTD GR · YTD SALES · YTD %ACH · YTD %GR table, for the month picked in the form
-    const dsheets = all.filter((s) => s.g.slice(0, 5).some((r) => r && norm(r[0]) === "BRAND" && r.some((c) => norm(c) === "MTDSALES")));
-    if (dsheets.length) {
-      let used = 0;
-      for (const s of dsheets) {
-        const nm = norm(s.n), zz = /DHAKA|DHK/.test(nm) ? "d" : /ACC/.test(nm) ? "a" : /NAT/.test(nm) ? "n" : null;
-        if (!zz) { warnings.push(`"${f.name}": sheet "${s.n}" skipped — its name should say NATIONAL, ACCELA NAT or ACCELA DHAKA.`); continue; }
-        const hi = s.g.findIndex((r) => r && norm(r[0]) === "BRAND"), rows = {}, names = {};
-        s.g.slice(hi + 1).forEach((r) => { if (!r || !r[0] || typeof r[1] !== "number" || /^(GRAND|TOTAL|PAGE)/i.test(String(r[0]).trim())) return;
-          const b = String(r[0]).trim().toUpperCase(); rows[b] = r.slice(1, 7).map((v) => Math.round(num(v) * 1e4) / 1e4); names[b] = String(r[0]).trim(); });
-        if (Object.keys(rows).length) { put(ctx.month, zz, rows, names, `${f.name} · ${s.n}`); used++; }
-      }
-      if (!used) errors.push(`"${f.name}": found the BRAND / MTD SALES tables but no brand rows in them.`);
-      continue;
-    }
-    // ACC trend file: month-named sheets, rows = [brand, MTD, %Ach, %Gr, YTD, %Ach, %Gr]
-    const z = /DHAKA|DHK/i.test(f.name) ? "d" : /NAT/i.test(f.name) ? "a" : null;
-    const msheets = all.filter((s) => APD_MON.some((w) => norm(s.n).startsWith(w.slice(0, 3))));
-    if (!msheets.length) { errors.push(`"${f.name}": not recognised. Expected the daily dashboard file (sheets NATIONAL, ACCELA NAT, ACCELA DHAKA), the Brand wise National report, or a trend file with month-named sheets (JANUARY, FEBRUARY …).`); continue; }
-    if (!z) { errors.push(`"${f.name}": put "NAT" or "DHAKA" in the file name so the portal knows which area it is (e.g. ACC_NAT_TREND_FILE, ACC_DHAKA_TREND_FILE).`); continue; }
-    for (const s of msheets) {
-      const mi = APD_MON.findIndex((w) => norm(s.n).startsWith(w.slice(0, 3))) + 1;
-      const key = `${mi > selM ? selY - 1 : selY}-${String(mi).padStart(2, "0")}`;
-      const rows = {}, names = {};
-      s.g.forEach((r) => { if (!r || !r[0] || typeof r[1] !== "number" || /^GRAND/i.test(String(r[0]).trim())) return; const b = String(r[0]).trim().toUpperCase(); rows[b] = r.slice(1, 7).map((v) => Math.round(num(v) * 1e4) / 1e4); names[b] = String(r[0]).trim(); });
-      if (Object.keys(rows).length) put(key, z, rows, names, f.name);
-    }
+    if (!found) errors.push(/brand\s*wise|trend/i.test(f.name) || wb.SheetNames.some((n) => ["NATIONAL", "ACCELANAT", "ACCELADHAKA"].includes(norm(n)))
+      ? `"${f.name}" is in the old format. The Upload Center now takes only the new daily ACCELA PORTFOLIO DASHBOARD file: one sheet with AREA, PRODUCT NAME, MTD AMOUNT, MTD %ACH, MTD %GR, YTD AMOUNT, YTD %ACH and YTD %GR columns.`
+      : `"${f.name}": not the Portfolio Dashboard file. Expected one sheet with AREA, PRODUCT NAME, MTD AMOUNT, MTD %ACH, MTD %GR, YTD AMOUNT, YTD %ACH and YTD %GR columns.`);
   }
   const keys = Object.keys(got).sort();
   if (!keys.length && !errors.length) errors.push("No portfolio figures found in the selected files.");
@@ -2385,12 +2368,13 @@ function apdCheck(X, files, ctx) {
   const upTo = keys.some(run) ? (ctx.date ? fmtDate(ctx.date) : upToNat) : null;
   // preview: All Product totals straight from the uploaded rows (sales, and Ach recomputed the dashboard's way)
   const prevRows = keys.map((k) => { const g = got[k];
-    const cell = (z) => { if (!g[z]) return "–"; const brands = z === "n" ? [...accBrands].filter((b) => b in g.n.rows) : Object.keys(g[z].rows); const S = brands.reduce((s, b) => s + g[z].rows[b][0], 0); return tk(S); };
+    const cell = (z) => { if (!g[z]) return "–"; const brands = z === "n" ? [...accBrands].filter((b) => b in g.n.rows) : Object.keys(g[z].rows); const S = brands.reduce((s, b) => s + g[z].rows[b][0], 0);
+      const B = brands.reduce((s, b) => s + (g[z].rows[b][1] ? (g[z].rows[b][0] * 100) / g[z].rows[b][1] : 0), 0); return `${tk(S)}${B > 0 ? ` <small class="muted">(${pct((S / B) * 100)})</small>` : ""}`; };
     return `<tr><td>${monthLabel(k)}${run(k) ? " (running)" : ""}</td><td class="num">${cell("n")}</td><td class="num">${cell("a")}</td><td class="num">${cell("d")}</td></tr>`; }).join("");
   return { errors, warnings,
     html: `<div class="msg ok"><b>Ready: ${keys.length} month${keys.length === 1 ? "" : "s"} · ${files.length} file${files.length === 1 ? "" : "s"} · ${keys.some(run) ? "running · " + (upTo || "") : "month end"}</b>
-      <p class="muted">All Product sales of the Accela brands, as read from each file. Compare with the Grand Total / brand totals in your reports.</p>
-      <div class="tablebox"><table><thead><tr><th>Month</th><th class="num">National (Tk)</th><th class="num">ACC NAT (Tk)</th><th class="num">ACC DHAKA (Tk)</th></tr></thead><tbody>${prevRows}</tbody></table></div></div>`,
+      <p class="muted">All Product sales of the Accela brands, as read from the file. Compare with your report before publishing.</p>
+      <div class="tablebox"><table><thead><tr><th>Month</th><th class="num">National (Tk)</th><th class="num">Accela (Tk)</th><th class="num">Accela Dhaka (Tk)</th></tr></thead><tbody>${prevRows}</tbody></table></div></div>`,
     apply: (next) => {
       const A = next.apd = next.apd || { months: {}, names: {}, lists: {} }; A.names = A.names || {}; A.months = A.months || {};
       keys.forEach((k) => {
@@ -3485,15 +3469,15 @@ async function checkAdmin() {
 // ---------- Upload Center registry: one entry per report that takes a raw file ----------
 // Add a report here when it is built; its Upload button then appears under its hub.
 const UPLOADERS = [
-  { id: "apd", hub: "sales", title: "Accela Portfolio Dashboard", needs: "Daily: the ACCELA PORTFOLIO DASHBOARD file (NATIONAL · ACCELA NAT · ACCELA DHAKA sheets). Also accepts the Brand wise National report + ACC NAT / ACC DHAKA trend files", multi: true,
+  { id: "apd", hub: "sales", title: "Accela Portfolio Dashboard", needs: "The daily ACCELA PORTFOLIO DASHBOARD file (one sheet: AREA · PRODUCT NAME · MTD AMOUNT · MTD %ACH · MTD %GR · YTD AMOUNT · YTD %ACH · YTD %GR)",
     latest: () => { const y = yesterdayIso().slice(0, 7), l = APD_LATEST || LATEST; return y > l ? y : l; },   // daily file: default to the current month
     status: () => (APD_LATEST ? `${monthLabel(apdMonths()[0])} – ${monthLabel(APD_LATEST)} · ${apdUpTo(APD_LATEST)} · ${Object.keys(APD.months[APD_LATEST].b).length} brands` : "No data yet"),
     check: (X, files, ctx) => apdCheck(X, files, ctx) },
-  { id: "ffs", hub: "sales", title: "Field Force Sales Status", needs: 'Daily: the FIELD FORCE SALES STATUS file (ALL PRODUCTS · TOP 12 · MEROPEN · TAZOPEN sheets). Also accepts a RAW DATA sheet (or one per month, e.g. "JAN RAW DATA")',
+  { id: "ffs", hub: "sales", title: "Field Force Sales Status", needs: "The daily FIELD FORCE SALES STATUS file (one sheet: BRAND · RSM · DSM · PSO · NAME · MTD AMT · BGT 2026 …)",
     latest: () => { const y = yesterdayIso().slice(0, 7); return y > LATEST ? y : LATEST; },   // daily file: default to the current month
     status: () => { const m = dataFor(LATEST); return m ? `${monthLabel(LATEST)} · ${upToText(LATEST)} · ${m.psos.length} PSOs` : "No data yet"; },
     check: (X, buf, ctx) => ffCheck(X, buf, ctx) },
-  { id: "pbt", hub: "sales", title: "Power Brand Tracker", needs: 'Daily: the ACCELA TOP 12 file (one sheet per brand: JAKRIF, ALKANON …). Also accepts a sheet with a BRAND column, e.g. "SEPT TOP 12"',
+  { id: "pbt", hub: "sales", title: "Power Brand Tracker", needs: "The daily TOP 12 BRAND DATA file (one sheet: brand names across the top, RSM · DSM · PSO · NAME, then SAL | BGT for each brand)",
     latest: () => { const y = yesterdayIso().slice(0, 7), l = PB_LATEST || LATEST; return y > l ? y : l; },   // daily file: default to the current month
     status: () => { const m = PB_LATEST && pbData(PB_LATEST); return m ? `${monthLabel(PB_LATEST)} · ${pbUpTo(PB_LATEST)} · ${m.brands.length} brands · ${m.psos.length} PSOs` : "No data yet"; },
     check: (X, buf, ctx) => pbCheck(X, buf, ctx) },
@@ -3699,62 +3683,27 @@ function parseRawSheet(rows, label) {
   return { errors, warnings, psos: [...psos.values()], cats };
 }
 function parseWorkbook(XLSX, buf, month) {
+  // v4.8: only the daily FIELD FORCE SALES STATUS file is accepted — one sheet, one row per PSO per section:
+  // BRAND (ALL PRODUCTS / TOP 12 / MEROPEN / TAZOPEN) · RSM · DSM · PSO · NAME · MTD AMT · BGT 2026 · %Ach · %Gr · YTD … (YTD not used)
   const wb = XLSX.read(buf, { type: "array" });
-  const isRaw = (n) => norm(n).endsWith("RAWDATA");
-  const monthOf = (n) => MONTH_WORDS.findIndex((w) => norm(n).startsWith(w));
-  const raws = wb.SheetNames.filter(isRaw);
-  if (!raws.length) {
-    // Daily report workbook (v3.4): sheets ALL PRODUCTS / TOP 12 / MEROPEN / TAZOPEN, each a PSO-wise
-    // RSM · DSM · PSO · NAME · MTD AMT · BGT 2026 … table with DSM / RSM subtotal rows (skipped). For the chosen month.
-    const REP = { ALLPRODUCTS: "ALL PRODUCTS", TOP12: "TOP 12 BRAND", TOP12BRAND: "TOP 12 BRAND", MEROPEN: "MEROPEN", TAZOPEN: "TAZOPEN" };
-    const reps = wb.SheetNames.filter((n) => REP[norm(n)]);
-    if (reps.length) {
-      const flat = [["PARTICULAR", "DSM", "PSO", "NAME", "MTD AMT", "BGT"]];
-      for (const n of reps) {
-        const g = XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: null, raw: true });
-        const hi = g.findIndex((r) => r && r.some((c) => norm(c) === "RSM") && r.some((c) => norm(c) === "PSO"));
-        if (hi < 0) return { errors: [`Sheet "${n}": no heading row with RSM, DSM, PSO, NAME, MTD AMT, BGT.`], warnings: [], months: [] };
-        const H = g[hi].map(norm), iR = H.indexOf("RSM"), iD = H.indexOf("DSM"), iP = H.indexOf("PSO"), iN = H.indexOf("NAME"), iS = H.indexOf("MTDAMT"), iB = H.findIndex((h, i) => h.startsWith("BGT") && i > iS);
-        if ([iD, iP, iN, iS, iB].some((i) => i < 0)) return { errors: [`Sheet "${n}": missing DSM, PSO, NAME, MTD AMT or BGT column.`], warnings: [], months: [] };
-        g.slice(hi + 1).forEach((r) => { if (!r) return; const t = (i) => String(r[i] == null ? "" : r[i]).trim();
-          if (!t(iR) || !t(iD) || !t(iP)) return;   // PSO rows carry RSM + DSM + PSO; subtotal rows don't
-          flat.push([REP[norm(n)], t(iD), t(iP), t(iN), r[iS], r[iB]]); });
-      }
-      const r = parseRawSheet(flat, `Sheets ${reps.map((n) => `"${n}"`).join(", ")}`);
-      const months = r.errors.length ? [] : [{ key: month, sheet: reps.join(" + "), psos: r.psos, cats: r.cats }];
-      return { errors: r.errors, warnings: r.warnings, months, dsmNames: {}, hasNames: false };
-    }
-    return { errors: [`No "RAW DATA" sheet, and no ALL PRODUCTS / TOP 12 / MEROPEN / TAZOPEN report sheets. Sheets in this file: ${wb.SheetNames.join(", ")}.`], warnings: [], months: [] };
+  const old = wb.SheetNames.some((n) => norm(n).endsWith("RAWDATA") || ["ALLPRODUCTS", "TOP12", "TOP12BRAND", "MEROPEN", "TAZOPEN"].includes(norm(n)));
+  for (const n of wb.SheetNames) {
+    const g = XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: null, raw: true });
+    const hi = g.findIndex((r) => r && r.some((c) => norm(c) === "BRAND") && r.some((c) => norm(c) === "PSO") && r.some((c) => norm(c) === "MTDAMT"));
+    if (hi < 0) continue;
+    const H = g[hi].map(norm), iBr = H.indexOf("BRAND"), iD = H.indexOf("DSM"), iP = H.indexOf("PSO"), iN = H.indexOf("NAME"), iS = H.indexOf("MTDAMT");
+    const iB = H.findIndex((h, i) => h.startsWith("BGT") && i > iS);
+    const miss = [["DSM", iD], ["PSO", iP], ["NAME", iN], ["BGT 2026 (after MTD AMT)", iB]].filter((x) => x[1] < 0).map((x) => x[0]);
+    if (miss.length) return { errors: [`Sheet "${n}": missing column(s) ${miss.join(", ")}.`], warnings: [], months: [] };
+    // same rows, BRAND read as the section; row numbers stay the Excel row numbers
+    const flat = g.map((r, i) => (i < hi ? null : i === hi ? ["PARTICULAR", "DSM", "PSO", "NAME", "MTD AMT", "BGT"] : r && [r[iBr], r[iD], r[iP], r[iN], r[iS], r[iB]]));
+    const r = parseRawSheet(flat, `Sheet "${n}"`);
+    const months = r.errors.length ? [] : [{ key: month, sheet: n, psos: r.psos, cats: r.cats }];
+    return { errors: r.errors, warnings: r.warnings.map((w) => w.replace("other PARTICULAR values", "other BRAND values")), months, dsmNames: {}, hasNames: false };
   }
-  const named = raws.filter((n) => monthOf(n) >= 0);
-  const selY = +month.slice(0, 4), selM = +month.slice(5, 7);
-  let list;
-  if (named.length > 1 || (named.length === 1 && raws.length === 1 && norm(named[0]) !== "RAWDATA")) {
-    // one sheet per month; months after the chosen month belong to the previous year
-    list = named.map((n) => { const mi = monthOf(n) + 1; return { name: n, key: `${mi > selM ? selY - 1 : selY}-${String(mi).padStart(2, "0")}` }; });
-  } else list = [{ name: raws.find((n) => norm(n) === "RAWDATA") || raws[0], key: month }];
-  const errors = [], warnings = [], months = [];
-  for (const sh of list) {
-    const rows = XLSX.utils.sheet_to_json(wb.Sheets[sh.name], { header: 1, defval: null, raw: true });
-    const r = parseRawSheet(rows, `Sheet "${sh.name}"`);
-    errors.push(...r.errors); warnings.push(...r.warnings);
-    if (months.some((x) => x.key === sh.key)) errors.push(`Two sheets are for ${monthLabel(sh.key)}.`);
-    if (!r.errors.length) months.push({ key: sh.key, sheet: sh.name, psos: r.psos, cats: r.cats });
-  }
-  if (list.length === 1 && months.length === 1 && months[0].key !== month) errors.push(`Sheet "${list[0].name}" is for ${monthLabel(months[0].key)}, but Month is set to ${monthLabel(month)}.`);
-  // Optional DSM names from FIELD FORCE NAME
-  const dsmNames = {};
-  const ffName = wb.SheetNames.find((n) => norm(n) === "FIELDFORCENAME");
-  if (ffName) {
-    const fr = XLSX.utils.sheet_to_json(wb.Sheets[ffName], { header: 1, defval: null });
-    const fh = fr.findIndex((r) => r && r.some((c) => norm(c) === "CODE"));
-    if (fh >= 0) {
-      const FH = fr[fh].map(norm), iC = FH.indexOf("CODE"), iNm = FH.indexOf("NAME"), iDs = FH.indexOf("DESIGNATION");
-      fr.slice(fh + 1).forEach((r) => { if (r && norm(r[iDs]) === "DSM" && r[iC] != null) dsmNames[String(r[iC]).trim()] = String(r[iNm] == null ? "" : r[iNm]).trim(); });
-    }
-  }
-  months.sort((a, b) => (a.key < b.key ? -1 : 1));
-  return { errors, warnings, months, dsmNames, hasNames: !!ffName };
+  return { errors: [old
+    ? "This is the old Field Force file format. The Upload Center now takes only the new daily FIELD FORCE SALES STATUS file: one sheet with BRAND, RSM, DSM, PSO, NAME, MTD AMT and BGT 2026 columns."
+    : `Not the Field Force file. Expected one sheet with BRAND, RSM, DSM, PSO, NAME, MTD AMT and BGT 2026 columns. Sheets in this file: ${wb.SheetNames.join(", ")}.`], warnings: [], months: [] };
 }
 
 // Field Force Sales Status: one RAW DATA sheet for the chosen month, or one sheet per month.
@@ -3812,32 +3761,36 @@ function pbCheck(X, buf, ctx) {
   const { month, type, date } = ctx;
   const errors = [], warnings = [];
   const wb = X.read(buf, { type: "array" });
+  // v4.8: only the daily TOP 12 BRAND DATA file is accepted — one sheet: brand names across the top row (each over a
+  // SAL | BGT pair), then RSM · DSM · PSO · NAME · SAL · BGT · SAL · BGT …, one row per PSO
   const sheets = [];
   for (const name of wb.SheetNames) {
-    const rows = X.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: null, raw: true });
-    const hi = rows.findIndex((r) => r && r.some((c) => norm(c) === "BRAND") && r.some((c) => norm(c) === "PSO"));
-    if (hi >= 0) sheets.push({ name, rows, hi });
-  }
-  if (!sheets.length) {
-    // Daily report workbook (v3.5): one sheet per brand (sheet name = brand), each a PSO-wise
-    // RSM · DSM · PSO · NAME · MTD AMT · BGT 2026 … table with DSM / RSM subtotal rows (skipped). For the chosen month.
+    const g = X.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: null, raw: true });
+    const hi = g.findIndex((r) => r && r.some((c) => norm(c) === "PSO") && r.some((c) => norm(c) === "SAL"));
+    if (hi < 1) continue;
+    const H = g[hi].map(norm), top = g[hi - 1] || [], iD = H.indexOf("DSM"), iP = H.indexOf("PSO"), iN = H.indexOf("NAME");
+    if ([iD, iP, iN].some((i) => i < 0)) { errors.push(`Sheet "${name}": missing DSM, PSO or NAME column.`); break; }
+    const cols = [];
+    H.forEach((h, i) => { if (h !== "SAL") return;
+      const br = String(top[i] == null ? "" : top[i]).trim().toUpperCase();
+      if (!br) errors.push(`Sheet "${name}": a SAL column (column ${i + 1}) has no brand name above it.`);
+      else if (H[i + 1] !== "BGT") errors.push(`Sheet "${name}": the ${br} SAL column is not followed by a BGT column.`);
+      else cols.push({ br, i }); });
+    if (errors.length) break;
+    const known = PB_LATEST ? pbBrands(PB_LATEST) : [], at = (b) => { const k = known.indexOf(b); return k < 0 ? 999 : k; };
+    cols.sort((a, b) => at(a.br) - at(b.br));   // keep the portal's usual brand order
     const flat = [["BRAND", "DSM", "PSO", "NAME", "MTD AMT", "BGT"]];
-    const known = PB_LATEST ? pbBrands(PB_LATEST) : [], at = (n) => { const i = known.indexOf(String(n).trim().toUpperCase()); return i < 0 ? 999 : i; };
-    for (const name of [...wb.SheetNames].sort((a, b) => at(a) - at(b))) {   // keep the portal's usual brand order
-      const g = X.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: null, raw: true });
-      const hi = g.findIndex((r) => r && r.some((c) => norm(c) === "RSM") && r.some((c) => norm(c) === "PSO"));
-      if (hi < 0) continue;
-      const H = g[hi].map(norm), iR = H.indexOf("RSM"), iD = H.indexOf("DSM"), iP = H.indexOf("PSO"), iN = H.indexOf("NAME"), iS = H.indexOf("MTDAMT"), iB = H.findIndex((h, i) => h.startsWith("BGT") && i > iS);
-      if ([iD, iP, iN, iS, iB].some((i) => i < 0)) { errors.push(`Sheet "${name}": missing DSM, PSO, NAME, MTD AMT or BGT column.`); continue; }
-      const br = String(name).trim().toUpperCase();
-      g.slice(hi + 1).forEach((r) => { if (!r) return; const t = (i) => String(r[i] == null ? "" : r[i]).trim();
-        if (!t(iR) || !t(iD) || !t(iP)) return;   // PSO rows carry RSM + DSM + PSO; subtotal rows don't
-        flat.push([br, t(iD), t(iP), t(iN), r[iS], r[iB]]); });
-    }
-    if (errors.length) return { errors, warnings };
-    if (flat.length > 1) sheets.push({ name: "Brand sheets", rows: flat, hi: 0 });
+    g.slice(hi + 1).forEach((r) => { if (!r || r.every((c) => c == null || c === "")) return; cols.forEach((c) => flat.push([c.br, r[iD], r[iP], r[iN], r[c.i], r[c.i + 1]])); });
+    sheets.push({ name: "Top 12 brand file", rows: flat, hi: 0 });
+    break;
   }
-  if (!sheets.length) return { errors: [`No brand sheet found. Use the daily file with one sheet per brand (RSM, DSM, PSO, NAME, MTD AMT, BGT 2026 columns), or a sheet with BRAND, DSM, PSO, NAME, MTD AMT and BGT 2026 columns. Sheets in this file: ${wb.SheetNames.join(", ")}.`], warnings };
+  if (errors.length) return { errors, warnings };
+  if (!sheets.length) {
+    const old = wb.SheetNames.some((n) => ["ALKANON", "ZODEF", "ODMON", "JAKRIF", "SALTICA"].includes(norm(n))) || wb.SheetNames.some((n) => /TOP12/.test(norm(n)) && MONTH_WORDS.some((w) => norm(n).startsWith(w)));
+    return { errors: [old
+      ? "This is the old Top 12 file format. The Upload Center now takes only the new daily TOP 12 BRAND DATA file: one sheet with the brand names across the top and RSM, DSM, PSO, NAME, then SAL | BGT for each brand."
+      : `Not the Top 12 brand file. Expected one sheet with the brand names across the top and RSM, DSM, PSO, NAME, then SAL | BGT for each brand. Sheets in this file: ${wb.SheetNames.join(", ")}.`], warnings };
+  }
   const selY = +month.slice(0, 4), selM = +month.slice(5, 7);
   const parsed = [];
   for (const sh of sheets) {
