@@ -701,7 +701,7 @@ body.on-home .logo .wm-o{animation:wm-glow 1.5s ease-in-out infinite}
 
   <section class="center" id="upload-center" hidden=""></section>
 
-  <footer>ACCELA ONE · v4.8<span class="ft-sep"> · </span><span class="ft-by">Developed &amp; maintained by <b class="ft-name">Mashfiq</b>, Product Executive, MKT, Renata PLC</span></footer>
+  <footer>ACCELA ONE · v4.8.1<span class="ft-sep"> · </span><span class="ft-by">Developed &amp; maintained by <b class="ft-name">Mashfiq</b>, Product Executive, MKT, Renata PLC</span></footer>
 
   <div class="modal" id="admin" hidden="">
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="admin-title">
@@ -3472,7 +3472,7 @@ const UPLOADERS = [
   { id: "apd", hub: "sales", title: "Accela Portfolio Dashboard", needs: "The daily ACCELA PORTFOLIO DASHBOARD file (one sheet: AREA · PRODUCT NAME · MTD AMOUNT · MTD %ACH · MTD %GR · YTD AMOUNT · YTD %ACH · YTD %GR)",
     latest: () => { const y = yesterdayIso().slice(0, 7), l = APD_LATEST || LATEST; return y > l ? y : l; },   // daily file: default to the current month
     status: () => (APD_LATEST ? `${monthLabel(apdMonths()[0])} – ${monthLabel(APD_LATEST)} · ${apdUpTo(APD_LATEST)} · ${Object.keys(APD.months[APD_LATEST].b).length} brands` : "No data yet"),
-    check: (X, files, ctx) => apdCheck(X, files, ctx) },
+    check: (X, f, ctx) => apdCheck(X, Array.isArray(f) ? f : [{ name: ADMIN.file ? ADMIN.file.name : "file", buf: f }], ctx) },   // v4.8.1: one file per upload
   { id: "ffs", hub: "sales", title: "Field Force Sales Status", needs: "The daily FIELD FORCE SALES STATUS file (one sheet: BRAND · RSM · DSM · PSO · NAME · MTD AMT · BGT 2026 …)",
     latest: () => { const y = yesterdayIso().slice(0, 7); return y > LATEST ? y : LATEST; },   // daily file: default to the current month
     status: () => { const m = dataFor(LATEST); return m ? `${monthLabel(LATEST)} · ${upToText(LATEST)} · ${m.psos.length} PSOs` : "No data yet"; },
